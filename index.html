@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>IoT Manager • CRUD MockAPI</title>
+
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <!-- Top bar -->
+  <nav class="navbar navbar-expand-lg nav-glass sticky-top">
+    <div class="container py-2">
+      <a class="navbar-brand d-flex align-items-center gap-2" href="#">
+        <span class="brand-dot"></span>
+        <span class="fw-semibold">IoT Manager</span>
+        <span class="badge ms-2" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);">
+  MockAPI CRUD
+</span>
+
+    </a>
+
+      <div class="ms-auto d-flex gap-2">
+        <button id="btnRefresh" class="btn btn-outline-light btn-sm">
+          <i class="bi bi-arrow-clockwise"></i> Refrescar
+        </button>
+        <button id="btnNew" class="btn btn-light btn-sm">
+          <i class="bi bi-plus-lg"></i> Nuevo dispositivo
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container my-4">
+    <!-- Header -->
+    <div class="d-flex flex-column flex-lg-row align-items-lg-end justify-content-between gap-3 mb-4">
+      <div>
+        <h1 class="h3 mb-1">Dispositivos IoT</h1>
+        <p class="text-secondary mb-0">Administra tu API: listar, crear, editar y eliminar.</p>
+      </div>
+
+      <div class="d-flex gap-2 w-100 w-lg-auto">
+        <div class="input-group input-group-sm">
+          <span class="input-group-text bg-body"><i class="bi bi-search"></i></span>
+          <input id="searchInput" type="text" class="form-control" placeholder="Buscar por nombre, IP o dirección...">
+          <button id="btnClearSearch" class="btn btn-outline-secondary">Limpiar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Commands panel -->
+    <section class="card card-soft mb-4">
+      <div class="card-body">
+        <div class="d-flex align-items-start justify-content-between flex-wrap gap-3">
+          <div>
+            <h2 class="h6 mb-1"><i class="bi bi-controller"></i> Comandos rápidos</h2>
+            <p class="text-secondary mb-0 small">Cargan automáticamente <b>direccionCode</b> y <b>direccionText</b> al formulario.</p>
+          </div>
+
+          <div class="d-flex align-items-center gap-2">
+            <span class="small text-secondary">Acción seleccionada:</span>
+            <span id="selectedCommand" class="badge rounded-pill text-bg-dark">Ninguna</span>
+          </div>
+        </div>
+
+        <div class="mt-3 command-grid">
+          <button class="btn btn-cmd" data-code="1"><span>1</span> Adelante</button>
+          <button class="btn btn-cmd" data-code="2"><span>2</span> Detener</button>
+          <button class="btn btn-cmd" data-code="3"><span>3</span> Atrás</button>
+          <button class="btn btn-cmd" data-code="4"><span>4</span> Vuelta derecha adelante</button>
+          <button class="btn btn-cmd" data-code="5"><span>5</span> Vuelta izquierda adelante</button>
+          <button class="btn btn-cmd" data-code="6"><span>6</span> Vuelta derecha atrás</button>
+          <button class="btn btn-cmd" data-code="7"><span>7</span> Vuelta izquierda atrás</button>
+          <button class="btn btn-cmd" data-code="8"><span>8</span> Giro 90° derecha</button>
+          <button class="btn btn-cmd" data-code="9"><span>9</span> Giro 90° izquierda</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Stats + actions -->
+    <section class="row g-3 mb-4">
+      <div class="col-12 col-lg-4">
+        <div class="card card-soft h-100">
+          <div class="card-body d-flex align-items-center justify-content-between">
+            <div>
+              <div class="text-secondary small">Registros</div>
+              <div class="display-6 fw-semibold" id="countTotal">0</div>
+            </div>
+            <div class="icon-bubble">
+              <i class="bi bi-hdd-network"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-lg-8">
+        <div class="card card-soft h-100">
+          <div class="card-body d-flex flex-column flex-md-row gap-3 align-items-md-center justify-content-between">
+            <div>
+              <div class="text-secondary small">API</div>
+              <div class="fw-semibold text-truncate" id="apiUrlText"></div>
+              <div class="small text-secondary">Tip: usa Live Server para evitar problemas de CORS locales.</div>
+            </div>
+
+            <div class="d-flex gap-2">
+              <button id="btnSeed" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-magic"></i> Crear ejemplo
+              </button>
+              <button id="btnDeleteAll" class="btn btn-outline-danger btn-sm">
+                <i class="bi bi-trash3"></i> Borrar todo (uno a uno)
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Table -->
+    <section class="card card-soft">
+      <div class="card-body">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+          <h2 class="h6 m-0"><i class="bi bi-table"></i> Lista</h2>
+          <div class="d-flex align-items-center gap-2">
+            <div id="loadingBadge" class="badge text-bg-secondary d-none"><i class="bi bi-hourglass-split"></i> Cargando...</div>
+            <div id="errorBadge" class="badge text-bg-danger d-none"><i class="bi bi-exclamation-triangle"></i> Error</div>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table align-middle table-hover">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>deviceName</th>
+                <th>ipclient</th>
+                <th>direccionCode</th>
+                <th>direccionText</th>
+                <th>DateTime</th>
+                <th class="text-end">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody">
+              <!-- rows by JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <div id="emptyState" class="text-center py-5 d-none">
+          <div class="empty-icon mb-2"><i class="bi bi-inbox"></i></div>
+          <div class="fw-semibold">Sin registros</div>
+          <div class="text-secondary small mb-3">Crea tu primer dispositivo para comenzar.</div>
+          <button class="btn btn-primary btn-sm" id="btnNewEmpty">
+            <i class="bi bi-plus-lg"></i> Nuevo dispositivo
+          </button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modal: Create/Edit -->
+  <div class="modal fade" id="deviceModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content modal-soft">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalTitle">Nuevo dispositivo</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+
+        <form id="deviceForm" class="modal-body">
+          <input type="hidden" id="id" />
+
+          <div class="row g-3">
+            <div class="col-12 col-md-6">
+              <label class="form-label">deviceName</label>
+              <input id="deviceName" class="form-control" placeholder="Ej: RobotCar-01" required />
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label">ipclient</label>
+              <input id="ipclient" class="form-control" placeholder="Ej: 192.168.0.50" required />
+              <div class="form-text">No validamos estrictamente IPv4, solo un check básico.</div>
+            </div>
+
+            <div class="col-12 col-md-4">
+              <label class="form-label">direccionCode</label>
+              <input id="direccionCode" type="number" class="form-control" placeholder="1..9" required />
+            </div>
+
+            <div class="col-12 col-md-8">
+              <label class="form-label">direccionText</label>
+              <input id="direccionText" class="form-control" placeholder="Ej: Adelante" required />
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">DateTime</label>
+              <input id="DateTime" type="datetime-local" class="form-control" />
+              <div class="form-text">Si lo dejas vacío, se enviará la fecha actual.</div>
+            </div>
+          </div>
+        </form>
+
+        <div class="modal-footer d-flex align-items-center justify-content-between">
+          <div class="small text-secondary">
+            <span class="badge text-bg-light">Tip</span>
+            El panel de comandos llena dirección automáticamente.
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button id="btnSave" type="submit" form="deviceForm" class="btn btn-primary">
+              <span class="me-1"><i class="bi bi-check2-circle"></i></span>
+              Guardar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast-container position-fixed top-0 end-0 p-3">
+    <div id="appToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="toast-header">
+        <i class="bi bi-bell me-2"></i>
+        <strong class="me-auto" id="toastTitle">Mensaje</strong>
+        <small class="text-secondary" id="toastTime">ahora</small>
+        <button type="button" class="btn-close ms-2" data-bs-dismiss="toast" aria-label="Cerrar"></button>
+      </div>
+      <div class="toast-body" id="toastBody">...</div>
+    </div>
+  </div>
+
+  <!-- Bootstrap bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
